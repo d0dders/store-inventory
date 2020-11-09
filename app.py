@@ -3,6 +3,8 @@ import datetime
 
 from peewee import *
 
+CSV_FILE_NAME = 'inventory.csv'
+
 db = SqliteDatabase('inventory.db')
 
 class Product(Model):
@@ -27,7 +29,27 @@ def read_csv(file):
             product['date_updated'] = datetime.datetime.strptime(product['date_updated'], "%m/%d/%Y")
         return product_list
 
+
+def write_db(product_list):
+    for product in product_list:
+        try:
+            Product.create(
+                product_name=product['product_name'],
+                product_quantity=product['product_quantity'],
+                product_price=product['product_price'],
+                date_updated=product['date_updated']
+            )
+        except IntegrityError:
+            current_record = Product.get(product_name=product['product_name'])
+            if current_record.date_updated < product['date_updated']:
+                current_record.product_quantity=product['product_quantity']
+                current_record.product_price=product['product_price']
+                current_record.date_updated=product['date_updated']
+                current_record.save()
+
+
 if __name__ == "__main__":
-    print(read_csv('inventory.csv'))
+    #Setup conections, create table and load data from CSV
     db.connect()
     db.create_tables([Product], safe=True)
+    write_db(read_csv(CSV_FILE_NAME))
