@@ -2,22 +2,11 @@ from collections import OrderedDict
 import csv
 import datetime
 import os
-
 from peewee import *
+from models.product import Product, db
+
 
 CSV_FILE_NAME = 'inventory.csv'
-
-db = SqliteDatabase('inventory.db')
-
-class Product(Model):
-    product_id = AutoField()
-    product_name = CharField(max_length=255, unique=True)
-    product_quantity = IntegerField(default=0)
-    product_price = IntegerField(default=0)
-    date_updated = DateTimeField()
-
-    class Meta:
-        database = db
 
 
 def read_csv(file):
@@ -39,6 +28,7 @@ def write_db(product_list):
 
 
 def write_product_to_db(product):
+    write_type = None
     try:
         Product.create(
             product_name=product['product_name'],
@@ -46,6 +36,7 @@ def write_product_to_db(product):
             product_price=product['product_price'],
             date_updated=product['date_updated']
         )
+        write_type = 'CREATED'
     except IntegrityError:
         current_record = Product.get(product_name=product['product_name'])
         if current_record.date_updated < product['date_updated']:
@@ -53,6 +44,8 @@ def write_product_to_db(product):
             current_record.product_price=product['product_price']
             current_record.date_updated=product['date_updated']
             current_record.save()
+            write_type = 'UPDATED'
+    return write_type
 
 
 def menu_loop():
@@ -69,6 +62,8 @@ def menu_loop():
         if choice in menu:
             clear()
             menu[choice]()
+        elif choice == 'q':
+            pass
         else:
             input("\nYou chose an invalid option. Hit ENTER to try again...")
 
@@ -78,7 +73,7 @@ def clear():
 
 
 def add_product_screen():
-    """Add a new product"""
+    """Add a new product to the database"""
     while True:
         try:
             new_name = input("Enter product name:  ")
@@ -87,7 +82,7 @@ def add_product_screen():
             new_quantity = int(input("Enter quantity:  "))
             new_price = int(input("Enter product price (cents):  "))
             new_date = datetime.datetime.now()
-        except Exception:
+        except ValueError:
             print("You made an invalid entry") 
         else:
             new_product = {
@@ -96,30 +91,40 @@ def add_product_screen():
                 'product_price': new_price,
                 'date_updated': new_date}  
 
-            write_product_to_db(new_product)
+            write_type = write_product_to_db(new_product)
+            input(f"\nProduct {write_type} succesfully. Press ENTER to return to main menu...")
+            break
         
 
 
-def view_product(product_id):
-    """View a products details"""
-    pass
+def view_product_screen():
+    """View a single product's inventory"""
+    try:
+        product_id = int(input("Enter a Product ID:  "))
+        product = Product.get(product_id=product_id)
+        print("\nProduct Name:", product.product_name)
+        print("Quantity:", product.product_quantity)
+        print("Price:", f'${product.product_price/100:.2f}')
+        print("Last updated:", product.date_updated.strftime("%m/%d/%Y"))
+        input("\nPress ENTER to return to main menu...")
+    except DoesNotExist:
+        input("\nThat product doesn't exist. Press ENTER to continue...")
 
 
 def backup_products():
-    """Backup products to CSV"""
+    """Make a backup of the entire inventory"""
     pass
 
 menu = OrderedDict([
     ('a', add_product_screen),
-    ('v', view_product),
+    ('v', view_product_screen),
     ('b', backup_products)
 ])
 
 
 if __name__ == "__main__":
-    #Setup conections, create table and load data from CSV
     db.connect()
     db.create_tables([Product], safe=True)
     write_db(read_csv(CSV_FILE_NAME))
-    
+
     menu_loop()
