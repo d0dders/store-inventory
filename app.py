@@ -113,7 +113,21 @@ def view_product_screen():
 
 def backup_products():
     """Make a backup of the entire inventory"""
-    pass
+    #The following line is a convoluted method to programatically get column names
+    fieldnames = (Product.get().__dict__)['__data__'].keys()
+    products = Product.select().dicts()
+    try:
+        with open('backup.csv', 'w', newline="") as csv_file:
+            productwriter = csv.DictWriter(csv_file, fieldnames=fieldnames)
+            productwriter.writeheader()
+
+            for product in products:
+                productwriter.writerow(product)
+
+        input("Backup saved as 'backup.csv'. Press ENTER to continue...")
+    except Exception:
+        input("WARNING: Something went wrong. Press ENTER to continue...")
+
 
 menu = OrderedDict([
     ('a', add_product_screen),
