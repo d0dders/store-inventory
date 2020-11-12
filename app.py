@@ -10,6 +10,9 @@ CSV_FILE_NAME = 'inventory.csv'
 
 
 def read_csv(file):
+    """Accepts a CSV file name, reads the contents of the file, and cleans it
+    Returns the cleaned list
+    """
     with open(file) as csv_file:
         csv_reader = csv.DictReader(csv_file, delimiter=',')
         product_list = list(csv_reader)
@@ -22,12 +25,17 @@ def read_csv(file):
 
 
 def write_db(product_list):
+    """Takes list of products and passes them to fucntion that will write or update to the db
+    """
     for product in product_list:
         write_product_to_db(product)
         
 
 
 def write_product_to_db(product):
+    """Takes a dictionary of product details and writes it to the db
+    Returns a string indicating whether the item was a new addition, or an update
+    """
     write_type = None
     try:
         Product.create(
