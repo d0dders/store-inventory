@@ -115,6 +115,8 @@ def view_product_screen():
         print("Price:", f'${product.product_price/100:.2f}')
         print("Last updated:", product.date_updated.strftime("%m/%d/%Y"))
         input("\nPress ENTER to return to main menu...")
+    except ValueError:
+        input("\nThe product ID must be a number. Press ENTER to continue...")
     except DoesNotExist:
         input("\nThat product doesn't exist. Press ENTER to continue...")
 
